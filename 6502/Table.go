@@ -1,5 +1,18 @@
+// Only exist to declare each Instruction of CPU
 package CPU6502
 
+// Structure for represent instruction of cpu
+// List of all instructions:
+// https://6502.org/users/obelisk/6502/instructions.html
+type Instruction struct {
+	Name      string
+	Operate   func(*CPU) byte
+	AddrMode  func(*CPU) byte
+	isImplied bool
+	Cycles    byte
+}
+
+// opcodeTable. Big, ugly, but it makes emulating the 6502 quite simple.
 var opcodeTable = [256]Instruction{
 	// 0x00-0x0F
 	{"BRK", (*CPU).BRK, (*CPU).IMM, false, 7}, {"ORA", (*CPU).ORA, (*CPU).IZX, false, 6}, {"???", (*CPU).XXX, (*CPU).IMP, true, 2}, {"???", (*CPU).XXX, (*CPU).IMP, true, 8},
