@@ -501,7 +501,7 @@ func LoadRegisterAbsoluteY(t *testing.T, opcode byte, getReg func(*CPU6502.CPU) 
 	cpu.Y = 0x01
 
 	// when:
-	for i := 0; i < 11; i++ {
+	for i := 0; i < 12; i++ {
 		cpu.Clock()
 	}
 
@@ -555,7 +555,7 @@ func LoadRegisterAbsoluteYPageBoundary(t *testing.T, opcode byte, getReg func(*C
 	cpu.Y = 0x01
 
 	// when:
-	for i := 0; i < 11; i++ {
+	for i := 0; i < 13; i++ {
 		cpu.Clock()
 	}
 
@@ -583,14 +583,14 @@ func TestLDAAbsoluteYCanLoadAValueIntoTheARegisterWhenCrossingPage(t *testing.T)
 	})
 }
 
-// LDY Absolute Y
-func TestLDXAbsoluteYCanLoadAValueIntoTheYRegisterWhenCrossingPage(t *testing.T) {
+// LDX Absolute Y
+func TestLDXAbsoluteYCanLoadAValueIntoTheXRegisterWhenCrossingPage(t *testing.T) {
 	LoadRegisterAbsoluteYPageBoundary(t, 0xBE, func(c *CPU6502.CPU) byte {
 		return c.X
 	})
 }
 
-// LDA Indirect Y
+// LDA Indirect X
 func TestLDAIndirectXCanLoadAValueIntoTheARegister(t *testing.T) {
 	// given:
 	bus := Bus.NewBus()
