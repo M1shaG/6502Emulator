@@ -257,7 +257,6 @@ func TestPLACanPullAZeroValueFromTheStackIntoTheARegsiter(t *testing.T) {
 }
 
 // PHP
-
 func TestPHPCanPushProcessorStatusOntoTheStack(t *testing.T) {
 	// given:
 	bus := Bus.NewBus()
@@ -273,13 +272,13 @@ func TestPHPCanPushProcessorStatusOntoTheStack(t *testing.T) {
 	spBefore := cpu.SP
 
 	// when:
-	for i := 0; i < 11; i++ { // 8 reset + 3 PHP
+	for i := 0; i < 11; i++ {
 		cpu.Clock()
 	}
 
 	// then:
 	pushed := bus.RAM[0x0100+Bus.Word(spBefore)]
-	if pushed != 0xFC { // B and U are set in the pushed copy
+	if pushed != 0xFC {
 		t.Errorf("pushed = 0x%02X, want 0xFC", pushed)
 	}
 
@@ -292,4 +291,78 @@ func TestPHPCanPushProcessorStatusOntoTheStack(t *testing.T) {
 	}
 }
 
-// TODO: complete tests
+func TestPHPAlwaysSetsBits4And5OnTheStack(t *testing.T) {
+	// given:
+	bus := Bus.NewBus()
+	cpu := &CPU6502.CPU{}
+	cpu.ConnectBus(bus)
+
+	bus.RAM[0xFFFC] = 0x00
+	bus.RAM[0xFFFD] = 0x00
+	bus.RAM[0x0000] = 0x08 // PHP
+
+	cpu.Reset()
+	cpu.Status = 0x00
+	spBefore := cpu.SP
+
+	// when:
+	for i := 0; i < 11; i++ {
+		cpu.Clock()
+	}
+
+	// then:
+	pushed := bus.RAM[0x0100+Bus.Word(spBefore)]
+	if pushed != CPU6502.FlagB|CPU6502.FlagU {
+		t.Errorf("pushed = 0x%02X, want FlagB|FlagU", pushed)
+	}
+}
+
+func TestPLPCanPullAValueFromTheStackIntoTheProcessorStatus(t *testing.T) {
+	// given:
+	bus := Bus.NewBus()
+	cpu := &CPU6502.CPU{}
+	cpu.ConnectBus(bus)
+
+	bus.RAM[0xFFFC] = 0x00
+	bus.RAM[0xFFFD] = 0x00
+	bus.RAM[0x01FF] = 0xCF
+	bus.RAM[0x0000] = 0x28 // PLP
+
+	cpu.Reset()
+	cpu.SP = 0xFE
+	cpu.Status = 0x00
+	// when:
+	for i := 0; i < 12; i++ {
+		cpu.Clock()
+	}
+
+	// then:
+	if cpu.Status != 0xCF|0x20 {
+		t.Errorf("Status = 0x%02X, want 0x%02X", cpu.Status, 0xCF|0x20)
+	}
+}
+
+func TestPLPClearsBits4And5WhenPullingFromTheStack(t *testing.T) {
+	// given:
+	bus := Bus.NewBus()
+	cpu := &CPU6502.CPU{}
+	cpu.ConnectBus(bus)
+
+	bus.RAM[0xFFFC] = 0x00
+	bus.RAM[0xFFFD] = 0x00
+	bus.RAM[0x01FF] = CPU6502.FlagU
+	bus.RAM[0x0000] = 0x28 // PLP
+
+	cpu.Reset()
+	cpu.SP = 0xFE
+	cpu.Status = 0x00
+	// when:
+	for i := 0; i < 12; i++ {
+		cpu.Clock()
+	}
+
+	// then:
+	if cpu.Status != 0x20 {
+		t.Errorf("Status = 0x%02X, want 0x20", cpu.Status)
+	}
+}
