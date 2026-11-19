@@ -23,7 +23,7 @@ func TestANDImmediateCanLogicalAndNonZeroNonNegativeValue(t *testing.T) {
 	statusBefore := cpu.Status
 
 	// when:
-	for _ = range 10 {
+	for range 10 {
 		cpu.Clock()
 	}
 
@@ -60,7 +60,7 @@ func TestANDImmediateCanLogicalAndZeroValue(t *testing.T) {
 	statusBefore := cpu.Status
 
 	// when:
-	for _ = range 10 {
+	for range 10 {
 		cpu.Clock()
 	}
 
@@ -97,7 +97,7 @@ func TestANDImmediateCanLogicalAndNegativeValue(t *testing.T) {
 	statusBefore := cpu.Status
 
 	// when:
-	for _ = range 10 {
+	for range 10 {
 		cpu.Clock()
 	}
 
@@ -1960,8 +1960,8 @@ func TestEORIndirectXCanLogicalEORNegativeValue(t *testing.T) {
 	bus.RAM[0x0000] = 0x41 // EOR Indirect X
 	bus.RAM[0x0001] = 0x10
 	bus.RAM[0x0014] = 0xF0
-	bus.RAM[0x0002] = 0x52
-	bus.RAM[0x52FC] = 0x9F
+	bus.RAM[0x0015] = 0x52
+	bus.RAM[0x52F0] = 0x9F
 
 	cpu.Reset()
 	cpu.X = 0x04
@@ -1969,7 +1969,7 @@ func TestEORIndirectXCanLogicalEORNegativeValue(t *testing.T) {
 	statusBefore := cpu.Status
 
 	// when:
-	for _ = range 12 {
+	for range 14 {
 		cpu.Clock()
 	}
 
@@ -1985,6 +1985,397 @@ func TestEORIndirectXCanLogicalEORNegativeValue(t *testing.T) {
 
 	if cpu.Status&CPU6502.FlagN == 0 {
 		t.Error("N flag should be set")
+	}
+
+	expectUnaffectedFlags(t, statusBefore, cpu.Status)
+}
+
+// EOR Indirect Y
+func TestEORIndirectYCanLogicalEORNonZeroNonNegativeValue(t *testing.T) {
+	// given:
+	bus := Bus.NewBus()
+	cpu := &CPU6502.CPU{}
+	cpu.ConnectBus(bus)
+
+	bus.RAM[0xFFFC] = 0x00
+	bus.RAM[0xFFFD] = 0x00
+	bus.RAM[0x0000] = 0x51 // EOR Indirect Y
+	bus.RAM[0x0001] = 0x10
+	bus.RAM[0x0010] = 0xF0
+	bus.RAM[0x0011] = 0x52
+	bus.RAM[0x52FC] = 0x4F
+
+	cpu.Reset()
+	cpu.Y = 0x0C
+	cpu.A = 0x78
+	statusBefore := cpu.Status
+
+	// when:
+	for range 13 {
+		cpu.Clock()
+	}
+
+	// then:
+	var EORValue byte = 0x4F ^ 0x78
+	if cpu.A != EORValue {
+		t.Errorf("cpu.A = %#02X, want %#02X", cpu.A, EORValue)
+	}
+
+	if cpu.Status&CPU6502.FlagZ != 0 {
+		t.Error("Z flag should be clear")
+	}
+
+	if cpu.Status&CPU6502.FlagN != 0 {
+		t.Error("N flag should be clear")
+	}
+
+	expectUnaffectedFlags(t, statusBefore, cpu.Status)
+}
+
+func TestEORIndirectYCanLogicalEORZeroValue(t *testing.T) {
+	// given:
+	bus := Bus.NewBus()
+	cpu := &CPU6502.CPU{}
+	cpu.ConnectBus(bus)
+
+	bus.RAM[0xFFFC] = 0x00
+	bus.RAM[0xFFFD] = 0x00
+	bus.RAM[0x0000] = 0x51 // EOR Indirect Y
+	bus.RAM[0x0001] = 0x10
+	bus.RAM[0x0010] = 0xF0
+	bus.RAM[0x0011] = 0x52
+	bus.RAM[0x52FC] = 0xFF
+
+	cpu.Reset()
+	cpu.Y = 0x0C
+	cpu.A = 0xFF
+	statusBefore := cpu.Status
+
+	// when:
+	for range 13 {
+		cpu.Clock()
+	}
+
+	// then:
+	var EORValue byte = 0xFF ^ 0xFF
+	if cpu.A != EORValue {
+		t.Errorf("cpu.A = %#02X, want %#02X", cpu.A, EORValue)
+	}
+
+	if cpu.Status&CPU6502.FlagZ == 0 {
+		t.Error("Z flag should be set")
+	}
+
+	if cpu.Status&CPU6502.FlagN != 0 {
+		t.Error("N flag should be clear")
+	}
+
+	expectUnaffectedFlags(t, statusBefore, cpu.Status)
+}
+
+func TestEORIndirectYCanLogicalEORNegativeValue(t *testing.T) {
+	// given:
+	bus := Bus.NewBus()
+	cpu := &CPU6502.CPU{}
+	cpu.ConnectBus(bus)
+
+	bus.RAM[0xFFFC] = 0x00
+	bus.RAM[0xFFFD] = 0x00
+	bus.RAM[0x0000] = 0x51 // EOR Indirect Y
+	bus.RAM[0x0001] = 0x10
+	bus.RAM[0x0010] = 0xF0
+	bus.RAM[0x0011] = 0x52
+	bus.RAM[0x52FC] = 0x9F
+
+	cpu.Reset()
+	cpu.Y = 0x0C
+	cpu.A = 0x79
+	statusBefore := cpu.Status
+
+	// when:
+	for range 13 {
+		cpu.Clock()
+	}
+
+	// then:
+	var EORValue byte = 0x9F ^ 0x79
+	if cpu.A != EORValue {
+		t.Errorf("cpu.A = %#02X, want %#02X", cpu.A, EORValue)
+	}
+
+	if cpu.Status&CPU6502.FlagZ != 0 {
+		t.Error("Z flag should be clear")
+	}
+
+	if cpu.Status&CPU6502.FlagN == 0 {
+		t.Error("N flag should be set")
+	}
+
+	expectUnaffectedFlags(t, statusBefore, cpu.Status)
+}
+
+func TestEORIndirectYPageBoundaryCanLogicalEORNonZeroNonNegativeValue(t *testing.T) {
+	// given:
+	bus := Bus.NewBus()
+	cpu := &CPU6502.CPU{}
+	cpu.ConnectBus(bus)
+
+	bus.RAM[0xFFFC] = 0x00
+	bus.RAM[0xFFFD] = 0x00
+	bus.RAM[0x0000] = 0x51 // EOR Indirect Y
+	bus.RAM[0x0001] = 0x10
+	bus.RAM[0x0010] = 0xFF
+	bus.RAM[0x0011] = 0x02
+	bus.RAM[0x0300] = 0x4F
+
+	cpu.Reset()
+	cpu.Y = 0x01
+	cpu.A = 0x78
+	statusBefore := cpu.Status
+
+	// when:
+	for range 14 {
+		cpu.Clock()
+	}
+
+	// then:
+	var EORValue byte = 0x4F ^ 0x78
+	if cpu.A != EORValue {
+		t.Errorf("cpu.A = %#02X, want %#02X", cpu.A, EORValue)
+	}
+
+	if cpu.Status&CPU6502.FlagZ != 0 {
+		t.Error("Z flag should be clear")
+	}
+
+	if cpu.Status&CPU6502.FlagN != 0 {
+		t.Error("N flag should be clear")
+	}
+
+	expectUnaffectedFlags(t, statusBefore, cpu.Status)
+}
+
+// ORA Immediate
+func TestORAImmediateCanLogicalAndNonZeroNonNegativeValue(t *testing.T) {
+	// given:
+	bus := Bus.NewBus()
+	cpu := &CPU6502.CPU{}
+	cpu.ConnectBus(bus)
+
+	bus.RAM[0xFFFC] = 0x00
+	bus.RAM[0xFFFD] = 0x00
+	bus.RAM[0x0000] = 0x09 // ORA Immediate
+	bus.RAM[0x0001] = 0x30
+
+	cpu.Reset()
+	cpu.A = 0x3F
+	statusBefore := cpu.Status
+
+	// when:
+	for range 10 {
+		cpu.Clock()
+	}
+
+	// then:
+	var ORValue byte = 0x3F | 0x30
+	if cpu.A != ORValue {
+		t.Errorf("cpu.A = %#02X, want %#02X", cpu.A, ORValue)
+	}
+
+	if cpu.Status&CPU6502.FlagZ != 0 {
+		t.Error("Z flag should be clear")
+	}
+
+	if cpu.Status&CPU6502.FlagN != 0 {
+		t.Error("N flag should be clear")
+	}
+
+	expectUnaffectedFlags(t, statusBefore, cpu.Status)
+}
+
+func TestORAImmediateCanLogicalAndZeroValue(t *testing.T) {
+	// given:
+	bus := Bus.NewBus()
+	cpu := &CPU6502.CPU{}
+	cpu.ConnectBus(bus)
+
+	bus.RAM[0xFFFC] = 0x00
+	bus.RAM[0xFFFD] = 0x00
+	bus.RAM[0x0000] = 0x09 // ORA Immediate
+	bus.RAM[0x0001] = 0x00
+
+	cpu.Reset()
+	cpu.A = 0x00
+	statusBefore := cpu.Status
+
+	// when:
+	for range 10 {
+		cpu.Clock()
+	}
+
+	// then:
+	var ORValue byte = 0x00 | 0x00
+	if cpu.A != ORValue {
+		t.Errorf("cpu.A = %#02X, want %#02X", cpu.A, ORValue)
+	}
+
+	if cpu.Status&CPU6502.FlagZ == 0 {
+		t.Error("Z flag should be set")
+	}
+
+	if cpu.Status&CPU6502.FlagN != 0 {
+		t.Error("N flag should be clear")
+	}
+
+	expectUnaffectedFlags(t, statusBefore, cpu.Status)
+}
+
+func TestORAImmediateCanLogicalAndNegativeValue(t *testing.T) {
+	// given:
+	bus := Bus.NewBus()
+	cpu := &CPU6502.CPU{}
+	cpu.ConnectBus(bus)
+
+	bus.RAM[0xFFFC] = 0x00
+	bus.RAM[0xFFFD] = 0x00
+	bus.RAM[0x0000] = 0x09 // ORA Immediate
+	bus.RAM[0x0001] = 0xF0
+
+	cpu.Reset()
+	cpu.A = 0x0F
+	statusBefore := cpu.Status
+
+	// when:
+	for range 10 {
+		cpu.Clock()
+	}
+
+	// then:
+	var ORValue byte = 0xF0 | 0x0F
+	if cpu.A != ORValue {
+		t.Errorf("cpu.A = %#02X, want %#02X", cpu.A, ORValue)
+	}
+
+	if cpu.Status&CPU6502.FlagZ != 0 {
+		t.Error("Z flag should be set")
+	}
+
+	if cpu.Status&CPU6502.FlagN == 0 {
+		t.Error("N flag should be clear")
+	}
+
+	expectUnaffectedFlags(t, statusBefore, cpu.Status)
+}
+
+// ORA Zero Page
+func TestORAZeroPageCanLogicalAndNonZeroNonNegativeValue(t *testing.T) {
+	// given:
+	bus := Bus.NewBus()
+	cpu := &CPU6502.CPU{}
+	cpu.ConnectBus(bus)
+
+	bus.RAM[0xFFFC] = 0x00
+	bus.RAM[0xFFFD] = 0x00
+	bus.RAM[0x0000] = 0x05 // ORA Zero Page
+	bus.RAM[0x0001] = 0x10
+	bus.RAM[0x0010] = 0x30
+
+	cpu.Reset()
+	cpu.A = 0x3F
+	statusBefore := cpu.Status
+
+	// when:
+	for range 11 {
+		cpu.Clock()
+	}
+
+	// then:
+	var ORValue byte = 0x30 | 0x3F
+	if cpu.A != ORValue {
+		t.Errorf("cpu.A = %#02X, want %#02X", cpu.A, ORValue)
+	}
+
+	if cpu.Status&CPU6502.FlagZ != 0 {
+		t.Error("Z flag should be clear")
+	}
+
+	if cpu.Status&CPU6502.FlagN != 0 {
+		t.Error("N flag should be clear")
+	}
+
+	expectUnaffectedFlags(t, statusBefore, cpu.Status)
+}
+
+func TestORAZeroPageCanLogicalAndZeroValue(t *testing.T) {
+	// given:
+	bus := Bus.NewBus()
+	cpu := &CPU6502.CPU{}
+	cpu.ConnectBus(bus)
+
+	bus.RAM[0xFFFC] = 0x00
+	bus.RAM[0xFFFD] = 0x00
+	bus.RAM[0x0000] = 0x05 // ORA Zero Page
+	bus.RAM[0x0001] = 0x10
+	bus.RAM[0x0010] = 0x00
+	cpu.Reset()
+	cpu.A = 0x00
+	statusBefore := cpu.Status
+
+	// when:
+	for range 10 {
+		cpu.Clock()
+	}
+
+	// then:
+	var ORValue byte = 0x00 | 0x00
+	if cpu.A != ORValue {
+		t.Errorf("cpu.A = %#02X, want %#02X", cpu.A, ORValue)
+	}
+
+	if cpu.Status&CPU6502.FlagZ == 0 {
+		t.Error("Z flag should be set")
+	}
+
+	if cpu.Status&CPU6502.FlagN != 0 {
+		t.Error("N flag should be clear")
+	}
+
+	expectUnaffectedFlags(t, statusBefore, cpu.Status)
+}
+
+func TestORAZeroPageCanLogicalAndNegativeValue(t *testing.T) {
+	// given:
+	bus := Bus.NewBus()
+	cpu := &CPU6502.CPU{}
+	cpu.ConnectBus(bus)
+
+	bus.RAM[0xFFFC] = 0x00
+	bus.RAM[0xFFFD] = 0x00
+	bus.RAM[0x0000] = 0x05 // ORA Zero Page
+	bus.RAM[0x0001] = 0x10
+	bus.RAM[0x0010] = 0xF0
+
+	cpu.Reset()
+	cpu.A = 0x0F
+	statusBefore := cpu.Status
+
+	// when:
+	for range 10 {
+		cpu.Clock()
+	}
+
+	// then:
+	var ORValue byte = 0xF0 | 0x0F
+	if cpu.A != ORValue {
+		t.Errorf("cpu.A = %#02X, want %#02X", cpu.A, ORValue)
+	}
+
+	if cpu.Status&CPU6502.FlagZ != 0 {
+		t.Error("Z flag should be set")
+	}
+
+	if cpu.Status&CPU6502.FlagN == 0 {
+		t.Error("N flag should be clear")
 	}
 
 	expectUnaffectedFlags(t, statusBefore, cpu.Status)
