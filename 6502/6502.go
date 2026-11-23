@@ -271,17 +271,21 @@ func (c *CPU) ABY() byte {
 // If low byte addr 0xFF, read high bite we need to create a page boundary.
 // But this doesnt actually work on the chip as designed and yielding an invalid address.
 func (c *CPU) IND() byte {
-	ptr_lo := c.Read(c.PC)
+	ptrLo := c.Read(c.PC)
 	c.PC++
-	ptr_hi := c.Read(c.PC)
+	ptrHi := c.Read(c.PC)
 	c.PC++
 
-	ptr := Bus.Word(ptr_hi)<<8 | Bus.Word(ptr_lo)
-	if ptr_lo == 0x00FF {
-		c.addrAbs = Bus.Word(c.Read(ptr&0xFF00))<<8 | Bus.Word(ptr+0)
+	ptr := Bus.Word(ptrHi)<<8 | Bus.Word(ptrLo)
+
+	lo := Bus.Word(c.Read(ptr))
+	var hi Bus.Word
+	if ptrLo == 0xFF {
+		hi = Bus.Word(c.Read(ptr & 0xFF00))
 	} else {
-		c.addrAbs = Bus.Word(c.Read(ptr+1&0xFF00))<<8 | Bus.Word(ptr+0)
+		hi = Bus.Word(c.Read(ptr + 1))
 	}
+	c.addrAbs = hi<<8 | lo
 	return 0
 }
 
@@ -702,38 +706,40 @@ func (c *CPU) LSR() byte {
 
 // Instruction: Rotate Left
 // Function: A = (A << 1) <- C
-// Flags Out: Z, N
+// Flags Out: C, Z, N
 func (c *CPU) ROL() byte {
 	c.fetch()
-	c.temp = Bus.Word(c.fetched << 1)
+	c.temp = Bus.Word(c.fetched) << 1
 	if c.GetFlag(FlagC) {
 		c.temp |= 1
 	}
-	c.SetFlag(FlagZ, (c.temp&0x00FF) == 0x00)
+	c.SetFlag(FlagC, c.temp&0xFF00 != 0)
+	c.SetFlag(FlagZ, c.temp&0x00FF == 0x00)
 	c.SetFlag(FlagN, c.temp&0x0080 != 0)
 	if c.currentInstr.isImplied {
-		c.A = byte(c.temp & 0x00FF) // Probably & 0x00FF it is useless
+		c.A = byte(c.temp)
 	} else {
-		c.Write(c.addrAbs, byte(c.temp&0x00FF))
+		c.Write(c.addrAbs, byte(c.temp))
 	}
 	return 0
 }
 
-// Instruction: Rotate Left
+// Instruction: Rotate Right
 // Function: A = C -> (A >> 1)
-// Flags Out: Z, N
+// Flags Out: C, Z, N
 func (c *CPU) ROR() byte {
 	c.fetch()
+	c.temp = Bus.Word(c.fetched >> 1)
 	if c.GetFlag(FlagC) {
-		c.temp = 1 << 7
+		c.temp |= 0x80
 	}
-	c.temp |= Bus.Word(c.fetched >> 1)
-	c.SetFlag(FlagZ, (c.temp&0x00FF) == 0x00)
+	c.SetFlag(FlagC, c.fetched&0x01 != 0)
+	c.SetFlag(FlagZ, c.temp&0x00FF == 0x00)
 	c.SetFlag(FlagN, c.temp&0x0080 != 0)
 	if c.currentInstr.isImplied {
-		c.A = byte(c.temp & 0x00FF)
+		c.A = byte(c.temp)
 	} else {
-		c.Write(c.addrAbs, byte(c.temp&0x00FF))
+		c.Write(c.addrAbs, byte(c.temp))
 	}
 	return 0
 }
