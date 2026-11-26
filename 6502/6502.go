@@ -528,21 +528,22 @@ func (c *CPU) BIT() byte {
 	return 0
 }
 
-// Arithmetic
-
 // Instruction: Add with Carry In
 // Function:    A = A + M + C
 // Flags Out:   C, V, N, Z
 func (c *CPU) ADC() byte {
 	c.fetch()
-	c.temp = Bus.Word(c.A) + Bus.Word(c.fetched)
+	a := Bus.Word(c.A)
+	m := Bus.Word(c.fetched)
 
+	c.temp = a + m
 	if c.GetFlag(FlagC) {
-		c.temp += 1
+		c.temp++
 	}
 
 	c.SetFlag(FlagC, c.temp > 255)
-	c.SetFlag(FlagV, Bus.Word(c.A)&Bus.Word(c.fetched)&Bus.Word(c.A)^Bus.Word(c.temp) != 0)
+	c.SetFlag(FlagZ, c.temp&0x00FF == 0)
+	c.SetFlag(FlagV, (^(a^m))&(a^c.temp)&0x80 != 0)
 	c.SetFlag(FlagN, c.temp&0x80 != 0)
 	c.A = byte(c.temp & 0x00FF)
 	return 1
@@ -753,12 +754,12 @@ func (c *CPU) JMP() byte {
 }
 
 // Instruction: Jump To Sub-Routine
-// Function: Push current pc to stack, pc = address
+// Function: Push PC-1 to stack, PC = address
 func (c *CPU) JSR() byte {
 	c.PC--
-	c.Write(0x0100+Bus.Word(c.SP), byte(c.PC>>8)&0x00FF)
+	c.Write(0x0100+Bus.Word(c.SP), byte(c.PC>>8))
 	c.SP--
-	c.Write(0x0100+Bus.Word(c.SP), byte(c.PC>>8)&0x00FF)
+	c.Write(0x0100+Bus.Word(c.SP), byte(c.PC&0x00FF))
 	c.SP--
 
 	c.PC = c.addrAbs
@@ -766,14 +767,14 @@ func (c *CPU) JSR() byte {
 }
 
 // Instruction: Return from Subroutine
-// Function: Pulls pc from stack
+// Function: Pull PC from stack, PC++
 func (c *CPU) RTS() byte {
 	c.SP++
-	c.PC = Bus.Word(c.Read(0x0100 + Bus.Word(c.SP)))
+	lo := Bus.Word(c.Read(0x0100 + Bus.Word(c.SP)))
 	c.SP++
-	c.PC |= Bus.Word(c.Read(0x0100 + Bus.Word(c.SP)))
+	hi := Bus.Word(c.Read(0x0100 + Bus.Word(c.SP)))
 
-	c.PC++
+	c.PC = (hi<<8 | lo) + 1
 	return 0
 }
 
@@ -939,21 +940,21 @@ func (c *CPU) CLV() byte {
 // Instruction: Set Carry Flag
 // Function: C = 1
 func (c *CPU) SEC() byte {
-	c.SetFlag(FlagC, false)
+	c.SetFlag(FlagC, true)
 	return 0
 }
 
 // Instruction: Set Decimal Flag
 // Function: D = 1
 func (c *CPU) SED() byte {
-	c.SetFlag(FlagD, false)
+	c.SetFlag(FlagD, true)
 	return 0
 }
 
 // Instruction: Set Interrupt Flag / Enable Interrupts
 // Function: I = 1
 func (c *CPU) SEI() byte {
-	c.SetFlag(FlagI, false)
+	c.SetFlag(FlagI, true)
 	return 0
 }
 
